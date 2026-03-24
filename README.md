@@ -213,9 +213,9 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-3. Database (standaard SQLite):
+3. Database (mysql):
 ```bash
-touch database/database.sqlite
+touch database/database.mysql
 php artisan migrate
 ```
 
