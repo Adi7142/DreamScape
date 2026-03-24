@@ -7,11 +7,12 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -39,6 +40,27 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
+
+    public function inventories()
+    {
+        return $this->hasMany(\App\Models\Inventory::class);
+    }
+
+    public function sentTrades()
+    {
+        return $this->hasMany(\App\Models\Trade::class, 'sender_id');
+    }
+
+    public function receivedTrades()
+    {
+        return $this->hasMany(\App\Models\Trade::class, 'receiver_id');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(\App\Models\Notification::class);
+    }
+
     protected function casts(): array
     {
         return [
