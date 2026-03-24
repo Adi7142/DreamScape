@@ -1,266 +1,164 @@
-# DreamScape
+## 12) Klikpad / Demo scenario (end-to-end testen)
 
-DreamScape is een Laravel-webapplicatie waarin spelers een **item catalogus** kunnen bekijken, hun **persoonlijke inventaris** kunnen beheren (bekijken, filteren en sorteren), **trades** kunnen sturen/ontvangen en **notificaties** krijgen.  
-Beheerders (**beheerder**) kunnen via een admin dashboard de **item catalogus beheren** (toevoegen/wijzigen/verwijderen) en items **toekennen aan spelers**.
+Deze stappen zijn bedoeld om de applicatie **van 0 → volledig werkend** te doorlopen en alle features te demonstreren.
 
----
+### Voorbereiding (eenmalig)
+1. Start de app:
+   - Terminal 1:
+     ```bash
+     php artisan serve
+     ```
+   - Terminal 2:
+     ```bash
+     npm run dev
+     ```
 
-## Gebruikte technologieën
+2. Zorg dat roles bestaan (Spatie) en dat je minstens 2 gebruikers hebt:
+   - 1x **beheerder**
+   - 1x **speler**
 
-- **Backend:** PHP 8.x + **Laravel 12**
-- **Authenticatie:** Laravel Breeze
-- **Frontend:** Blade + Tailwind CSS + Alpine.js
-- **Build tooling:** Vite
-- **Roles/Permissions:** `spatie/laravel-permission`
-- **Database:** standaard SQLite (kan ook MySQL)
+   Rollen aanmaken + toekennen kan via:
+   ```bash
+   php artisan tinker
+   ```
+   ```php
+   use Spatie\Permission\Models\Role;
 
----
+   Role::firstOrCreate(['name' => 'beheerder']);
+   Role::firstOrCreate(['name' => 'speler']);
 
-## Belangrijkste features (functioneel)
+   // voorbeeld: eerste user beheerder maken
+   $admin = \App\Models\User::find(1);
+   $admin->assignRole('beheerder');
 
-### 1) Item Catalogus (Speler)
-Spelers kunnen alle items bekijken en filteren.
-
-**Wat kan een speler?**
-- Items bekijken in een overzicht
-- Filteren op:
-  - `search` (naam)
-  - `type`
-  - `rarity`
-- Doorklikken naar een detailpagina met alle statistieken
-
-**Routes**
-- `GET /items` → `items.index`
-- `GET /items/{item}` → `items.show`
-
-**Controller**
-- `app/Http/Controllers/ItemController.php`
-
----
-
-### 2) Inventaris (Speler)
-Spelers kunnen hun **persoonlijke inventaris** bekijken.
-
-**Wat kan een speler?**
-- Overzicht van eigen inventory-items (met quantity)
-- Filteren op item-gegevens:
-  - `search` (naam)
-  - `type`
-  - `rarity`
-- Sorteren op:
-  - `latest` (nieuwste eerst)
-  - `name`, `type`, `rarity` (item-velden)
-  - `quantity` (inventory-veld)
-- Detailpagina per inventory entry met item-statistieken
-
-**Routes**
-- `GET /inventory` → `inventory.index`
-- `GET /inventory/{inventory}` → `inventory.show`
-
-**Controller**
-- `app/Http/Controllers/InventoryController.php`
-
-**Belangrijk**
-- De tabel heet **`inventory`** (enkelvoud). Daarom heeft het model:
-  - `protected $table = 'inventory';` in `app/Models/Inventory.php`
+   // voorbeeld: tweede user speler maken
+   $player = \App\Models\User::find(2);
+   $player->assignRole('speler');
+   ```
 
 ---
 
-### 3) Trading systeem (Speler ↔ Speler)
-Spelers kunnen items traden met elkaar.
+### Scenario A — Admin: item aanmaken + toekennen aan speler
+Doel: aantonen dat de beheerder de catalogus kan beheren én inventory kan vullen.
 
-**Wat kan een speler?**
-- Trades zien die ontvangen zijn + trades die zelf verzonden zijn
-- Trade request aanmaken naar andere spelers
-- Trade accepteren/weigeren
-- Bij accept:
-  - sender inventory -1
-  - receiver inventory +1
-  - trade status → `accepted`
-  - notificatie naar sender
-- Bij decline:
-  - trade status → `declined`
+1. Log in als **beheerder**.
+2. Ga naar het admin dashboard:
+   - URL: `/admin`
 
-**Routes**
-- `GET /trades` → `trades.index`
-- `GET /trades/create` → `trades.create`
-- `POST /trades` → `trades.store`
-- `PATCH /trades/{trade}/accept` → `trades.accept`
-- `PATCH /trades/{trade}/decline` → `trades.decline`
+3. Maak een item aan:
+   - Klik **Manage Items** of ga naar: `/admin/items`
+   - Klik **Add Item** (of `/admin/items/create`)
+   - Vul velden in (naam, description, type, rarity, power/speed/durability, magic_property)
+   - Klik **Save Item**
+   - Controle: item staat nu in de admin items lijst
 
-**Controller**
-- `app/Http/Controllers/TradeController.php`
+4. Ken een item toe aan een speler:
+   - Ga naar: `/admin/inventory/assign`
+   - Kies een **Player** (user met role `speler`)
+   - Kies een **Item**
+   - Vul **Quantity** in (bv. 2)
+   - Klik **Assign Item**
+   - Controle: je krijgt een success message en de speler heeft nu dit item in inventory
 
 ---
 
-### 4) Notificaties
-Notificaties worden o.a. gebruikt voor trade-events.
+### Scenario B — Speler: item catalogus bekijken + filteren + details
+Doel: aantonen dat de speler de catalogus kan doorzoeken en item stats kan bekijken.
 
-**Wat kan een speler?**
-- Notificaties bekijken
-- Notificatie markeren als gelezen
+1. Log uit als admin.
+2. Log in als **speler**.
+3. Ga naar de item catalogus:
+   - URL: `/items`
 
-**Routes**
-- `GET /notifications` → `notifications.index`
-- `PATCH /notifications/{notification}/read` → `notifications.read`
+4. Test filters:
+   - Vul `Search item...` (bv. deel van de naam)
+   - Vul `Type` en/of `Rarity`
+   - Klik **Filter**
+   - Controle: de lijst past zich aan op basis van je filters
 
-**Controller**
-- `app/Http/Controllers/NotificationController.php`
-
----
-
-## Admin (Beheerder)
-
-Admin routes zijn beveiligd met:
-- `auth`
-- `verified`
-- `role:beheerder` (Spatie roles)
-
-### 1) Admin Dashboard
-Toont statistieken:
-- aantal users
-- aantal items
-- aantal trades
-
-**Route**
-- `GET /admin` → `admin.dashboard`
-
-**Controller**
-- `app/Http/Controllers/Admin/AdminController.php`
+5. Open een item detailpagina:
+   - Klik **View details**
+   - Controle: je ziet alle stats (power/speed/durability/magic_property)
 
 ---
 
-### 2) Item catalogus beheren (CRUD)
-Beheerder kan:
-- item toevoegen
-- item wijzigen
-- item verwijderen
-- item-statistieken aanpassen (power/speed/durability/magic_property)
+### Scenario C — Speler: inventaris bekijken + filteren + sorteren + details
+Doel: aantonen dat de speler alleen zijn eigen inventory ziet en kan filteren/sorteren.
 
-**Routes**
-- `GET /admin/items` → `admin.items.index`
-- `GET /admin/items/create` → `admin.items.create`
-- `POST /admin/items` → `admin.items.store`
-- `GET /admin/items/{item}/edit` → `admin.items.edit`
-- `PATCH /admin/items/{item}` → `admin.items.update`
-- `DELETE /admin/items/{item}` → `admin.items.destroy`
+1. Ga naar je inventaris:
+   - URL: `/inventory`
 
-**Controller**
-- `app/Http/Controllers/Admin/AdminItemController.php`
+2. Test inventory filters (zelfde als catalogus):
+   - `Search`, `Type`, `Rarity`
+   - Klik **Apply**
+   - Controle: alleen inventory-items die matchen blijven zichtbaar
 
----
+3. Test sorteren:
+   - Kies `Sort`:
+     - `Newest` (latest)
+     - `Name`, `Type`, `Rarity` (sorteren op item-velden)
+     - `Quantity` (sorteren op inventory veld)
+   - Kies `Direction` (Asc/Desc)
+   - Klik **Apply**
+   - Controle: volgorde verandert correct
 
-### 3) Item toekennen aan speler (Inventory assign)
-Beheerder kan een item aan een speler geven.
-- Bestaat het item al in inventory? → dan wordt `quantity` verhoogd.
-
-**Routes**
-- `GET /admin/inventory/assign` → `admin.inventory.assign.create`
-- `POST /admin/inventory/assign` → `admin.inventory.assign.store`
-
-**Controller**
-- `app/Http/Controllers/Admin/AdminInventoryController.php`
+4. Open inventory detailpagina:
+   - Klik **View details**
+   - Controle: je ziet quantity + item stats
 
 ---
 
-## Datamodel (overzicht)
+### Scenario D — Trades: trade sturen + accepteren/weigeren + effect op inventory
+Doel: aantonen dat trading werkt en inventory echt verandert.
 
-### Item (`items`)
-Velden:
-- `name`, `description`, `type`, `rarity`
-- `power`, `speed`, `durability`, `magic_property`
+> Je hebt hiervoor 2 spelers nodig: **Speler A** en **Speler B**.
+> Zorg dat Speler A minstens 1 item heeft (via admin assign).
 
-Model: `app/Models/Item.php`
+#### D1) Speler A stuurt trade request
+1. Log in als **Speler A** (de speler met een item).
+2. Ga naar trades:
+   - URL: `/trades`
+3. Klik **Create trade** (of ga naar `/trades/create`)
+4. Kies:
+   - Receiver = Speler B
+   - Item = een item dat Speler A bezit
+5. Klik submit (trade aanmaken)
+6. Controle:
+   - Trade verschijnt bij **sent trades**
+   - Speler B krijgt een notificatie
 
-### Inventory (`inventory`)
-Velden:
-- `user_id`, `item_id`, `quantity`
+#### D2) Speler B accepteert of weigert
+1. Log uit en log in als **Speler B**.
+2. Ga naar `/trades`
+3. Bij received trade:
+   - Klik **Accept** of **Decline**
 
-Model: `app/Models/Inventory.php`
+**Als Accept:**
+- Controleer inventory:
+  - Speler B krijgt het item (quantity +1)
+  - Speler A verliest het item (quantity -1)
+- Controleer notificaties:
+  - Speler A ontvangt een notificatie “accepted”
 
-### Trade (`trades`)
-Velden:
-- `sender_id`, `receiver_id`, `item_id`, `status`
-
-Model: `app/Models/Trade.php`
-
-### User (`users`)
-Gebruikt Spatie roles:
-- `speler`
-- `beheerder`
-
-Model: `app/Models/User.php`
-
----
-
-## Installatie / Runnen (lokaal)
-
-### Vereisten
-- PHP 8.2+ (Laravel 12)
-- Composer
-- Node.js + npm
-
-### Stappen
-1. Dependencies installeren:
-```bash
-composer install
-npm install
-```
-
-2. `.env` maken:
-```bash
-cp .env.example .env
-php artisan key:generate
-```
-
-3. Database (mysql):
-```bash
-touch database/database.mysql
-php artisan migrate
-```
-
-4. Frontend assets:
-```bash
-npm run dev
-```
-(of productie build: `npm run build`)
-
-5. App starten:
-```bash
-php artisan serve
-```
+**Als Decline:**
+- Inventory verandert niet
+- Trade status wordt declined
 
 ---
 
-## Rollen (Spatie)
-Admin gedeelte vereist role **beheerder**.
-
-Voorbeeld via tinker:
-```bash
-php artisan tinker
-```
-
-```php
-use Spatie\Permission\Models\Role;
-
-Role::firstOrCreate(['name' => 'beheerder']);
-Role::firstOrCreate(['name' => 'speler']);
-
-$user = \App\Models\User::first();
-$user->assignRole('beheerder');
-```
+### Scenario E — Notificaties bekijken en afvinken
+1. Ga naar notificaties:
+   - URL: `/notifications`
+2. Je ziet een lijst met notificaties (nieuwste eerst)
+3. Klik **mark as read**
+4. Controle: notificatie wordt als gelezen opgeslagen (is_read = true)
 
 ---
 
-## Projectstructuur (globaal)
-
-- `routes/web.php` — routes voor speler + admin
-- `app/Http/Controllers/` — controllers voor items, inventory, trades, notifications
-- `app/Http/Controllers/Admin/` — admin controllers
-- `app/Models/` — models (Item, Inventory, Trade, User, Notification)
-- `resources/views/` — Blade views (items, inventory, admin, trades, notifications)
-
----
-
-## Licentie
-School/educatief project.
+### Snelle checklist (acceptatiecriteria)
+- ✅ Gebruiker ziet lijst van items (catalogus + inventory)
+- ✅ Items tonen statistieken (item show + inventory show)
+- ✅ Inventaris kan gesorteerd worden (sort dropdown + join/orderBy)
+- ✅ Admin kan item toevoegen/wijzigen/verwijderen (admin items CRUD)
+- ✅ Admin kan items toekennen (inventory assign)
+- ✅ Trades werken + inventory update + notificaties
