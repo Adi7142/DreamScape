@@ -42,6 +42,8 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // HIER: nieuwe gebruiker automatisch speler maken
+        $user->assignRole('speler');
         event(new Registered($user));
 
         Auth::login($user);
