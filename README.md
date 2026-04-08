@@ -85,9 +85,9 @@ This runs the following steps automatically (`composer.json` → `scripts.setup`
 1. `composer install`
 2. Copies `.env.example` → `.env` (if `.env` does not exist yet)
 3. `php artisan key:generate`
-4. `php artisan migrate --force`
+4. `php artisan migrate`
 5. `npm install`
-6. `npm run build`
+6. `npm run dev`
 
 ### Manual step-by-step
 
@@ -97,7 +97,7 @@ cp .env.example .env
 php artisan key:generate
 php artisan migrate --seed    # runs migrations and seeds all test data
 npm install
-npm run build
+npm run dev
 ```
 
 ### Storage permissions (Linux / macOS)
