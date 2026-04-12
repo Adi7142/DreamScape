@@ -1,4 +1,4 @@
-## 12) Klikpad / Demo scenario (end-to-end testen)
+## Klikpad / Demo scenario (end-to-end testen)
 
 Deze stappen zijn bedoeld om de applicatie **van 0 → volledig werkend** te doorlopen en alle features te demonstreren.
 
